@@ -19,7 +19,7 @@
       let newBid = parseInt(document.getElementById("bidInput").value);
 
       if (isNaN(newBid)) {
-        alert("Enter valid bid");
+        alert("Please enter valid bid");
         return;
       }
 
