@@ -7,9 +7,30 @@
   <h1>Oramane Luxe Auction</h1>
   <h2>Infinity Tipai</h2>
 
-  <p>Current Bid: ₹0</p>
+  <p>Current Bid: ₹<span id="currentBid">0</span></p>
 
-  <input type="number" placeholder="Enter your bid">
-  <button>Place Bid</button>
+  <input id="bidInput" type="number" placeholder="Enter your bid">
+  <button onclick="placeBid()">Place Bid</button>
+
+  <script>
+    let currentBid = 0;
+
+    function placeBid() {
+      let newBid = parseInt(document.getElementById("bidInput").value);
+
+      if (isNaN(newBid)) {
+        alert("Enter valid bid");
+        return;
+      }
+
+      if (newBid > currentBid) {
+        currentBid = newBid;
+        document.getElementById("currentBid").innerText = currentBid;
+        alert("Bid placed successfully!");
+      } else {
+        alert("Bid must be higher than current bid");
+      }
+    }
+  </script>
 </body>
 </html>
