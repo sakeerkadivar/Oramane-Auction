@@ -2,22 +2,25 @@
 <html>
 <head>
   <title>Oramane Luxe Auction</title>
-  <style>
-body{
-  text-align:center;
-  font-family:Arial, sans-serif;
-}
 
-img, video{
-  max-width:90%;
-}
-</style>
+  <style>
+    body{
+      text-align:center;
+      font-family:Arial, sans-serif;
+    }
+
+    img, video{
+      max-width:90%;
+    }
+  </style>
 </head>
 <body>
 
 <h1>Oramane Luxe Auction</h1>
 <h2>Infinity Tipai</h2>
+
 <p id="productDescription"></p>
+
 <img id="productImage" width="400">
 
 <br><br>
@@ -27,21 +30,29 @@ img, video{
 <br><br>
 
 <p>Current Bid: ₹<span id="currentBid">0</span></p>
-<p>Highest Bidder: <span id="highestBidder">No Bid Yet</span></p>
+
+<p>Highest Bidder:
+  <span id="highestBidder">No Bid Yet</span>
+</p>
 
 <input id="name" type="text" placeholder="Your Name">
+
 <br><br>
 
 <input id="mobile" type="tel" placeholder="Mobile Number">
+
 <br><br>
 
 <input id="bidInput" type="number" placeholder="Enter Your Bid">
+
 <br><br>
 
 <button onclick="placeBid()">Place Bid</button>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+
 import {
   getFirestore,
   doc,
@@ -62,37 +73,62 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let currentBid = 0;
+let minIncrement = 0;
 
 async function loadBid() {
+
   const snap = await getDoc(doc(db, "Auction", "auction1"));
 
   if (snap.exists()) {
+
     currentBid = snap.data().currentBid || 0;
+
     document.getElementById("currentBid").innerText = currentBid;
+
     document.getElementById("highestBidder").innerText =
-  snap.data().bidderName || "No Bid Yet";
+      snap.data().bidderName || "No Bid Yet";
   }
 
-  const productSnap = await getDoc(doc(db, "Products", "product1"));
+  const productSnap =
+    await getDoc(doc(db, "Products", "product1"));
 
   if (productSnap.exists()) {
+
     const product = productSnap.data();
 
-    document.querySelector("h2").innerText = product.name;
-    document.getElementById("productDescription").innerText = product.description;
+    document.querySelector("h2").innerText =
+      product.name || "";
 
-    document.getElementById("productImage").src = product.imageUrl;
+    document.getElementById("productDescription").innerText =
+      product.description || "";
+
+    document.getElementById("productImage").src =
+      product.imageUrl || "";
 
     document.getElementById("productVideo").innerHTML =
       `<source src="${product.videoUrl}" type="video/mp4">`;
   }
+
+  const settingSnap =
+    await getDoc(doc(db, "settings", "auction1"));
+
+  if (settingSnap.exists()) {
+    minIncrement =
+      settingSnap.data().minIncrement || 0;
+  }
+
 }
 
 window.placeBid = async function () {
 
-  const name = document.getElementById("name").value;
-  const mobile = document.getElementById("mobile").value;
-  const newBid = parseInt(document.getElementById("bidInput").value);
+  const name =
+    document.getElementById("name").value;
+
+  const mobile =
+    document.getElementById("mobile").value;
+
+  const newBid =
+    parseInt(document.getElementById("bidInput").value);
 
   if (!name || !mobile) {
     alert("Please enter Name and Mobile");
@@ -104,25 +140,38 @@ window.placeBid = async function () {
     return;
   }
 
-  if (newBid <= currentBid) {
-    alert("Bid must be higher than current bid");
+  if (newBid < currentBid + minIncrement) {
+
+    alert(
+      "Minimum bid must be ₹" +
+      (currentBid + minIncrement)
+    );
+
     return;
   }
 
-  await updateDoc(doc(db, "Auction", "auction1"), {
-    currentBid: newBid,
-    bidderName: name,
-    bidderMobile: mobile
-  });
+  await updateDoc(
+    doc(db, "Auction", "auction1"),
+    {
+      currentBid: newBid,
+      bidderName: name,
+      bidderMobile: mobile
+    }
+  );
 
   currentBid = newBid;
-  document.getElementById("currentBid").innerText = currentBid;
-  document.getElementById("highestBidder").innerText = name;
+
+  document.getElementById("currentBid").innerText =
+    currentBid;
+
+  document.getElementById("highestBidder").innerText =
+    name;
 
   alert("Bid Placed Successfully!");
 };
 
 loadBid();
+
 </script>
 
 </body>
