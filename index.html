@@ -27,6 +27,7 @@ img, video{
 <br><br>
 
 <p>Current Bid: ₹<span id="currentBid">0</span></p>
+<p>Highest Bidder: <span id="highestBidder">No Bid Yet</span></p>
 
 <input id="name" type="text" placeholder="Your Name">
 <br><br>
@@ -68,6 +69,8 @@ async function loadBid() {
   if (snap.exists()) {
     currentBid = snap.data().currentBid || 0;
     document.getElementById("currentBid").innerText = currentBid;
+    document.getElementById("highestBidder").innerText =
+  snap.data().bidderName || "No Bid Yet";
   }
 
   const productSnap = await getDoc(doc(db, "Products", "product1"));
@@ -114,6 +117,7 @@ window.placeBid = async function () {
 
   currentBid = newBid;
   document.getElementById("currentBid").innerText = currentBid;
+  document.getElementById("highestBidder").innerText = name;
 
   alert("Bid Placed Successfully!");
 };
