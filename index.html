@@ -21,44 +21,72 @@
 
 <button onclick="placeBid()">Place Bid</button>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAo3IRVpwQuHYbe7_MnqCWEO_GRFav2QP8",
+  authDomain: "oramane-lux-auction-4e10e.firebaseapp.com",
+  projectId: "oramane-lux-auction-4e10e",
+  storageBucket: "oramane-lux-auction-4e10e.firebasestorage.app",
+  messagingSenderId: "233399631370",
+  appId: "1:233399631370:web:c3179128b25b50a0a8e9f3"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 let currentBid = 0;
 
-function placeBid() {
+async function loadBid() {
+  const snap = await getDoc(doc(db, "Auction", "auction1"));
 
-  let name = document.getElementById("name").value;
-  let mobile = document.getElementById("mobile").value;
-  let newBid = parseInt(document.getElementById("bidInput").value);
+  if (snap.exists()) {
+    currentBid = snap.data().currentBid || 0;
+    document.getElementById("currentBid").innerText = currentBid;
+  }
+}
 
-  if(name === "" || mobile === ""){
-    alert("Please enter Name and Mobile Number");
+window.placeBid = async function () {
+
+  const name = document.getElementById("name").value;
+  const mobile = document.getElementById("mobile").value;
+  const newBid = parseInt(document.getElementById("bidInput").value);
+
+  if (!name || !mobile) {
+    alert("Please enter Name and Mobile");
     return;
   }
 
-  if(isNaN(newBid)){
+  if (isNaN(newBid)) {
     alert("Please enter valid bid");
     return;
   }
 
-  if(newBid > currentBid){
-
-    currentBid = newBid;
-
-    document.getElementById("currentBid").innerText = currentBid;
-
-    alert(
-      "Bid Placed Successfully!\n\n" +
-      "Name: " + name + "\n" +
-      "Mobile: " + mobile + "\n" +
-      "Bid: ₹" + newBid
-    );
-
-  } else {
-
+  if (newBid <= currentBid) {
     alert("Bid must be higher than current bid");
-
+    return;
   }
-}
+
+  await updateDoc(doc(db, "Auction", "auction1"), {
+    currentBid: newBid,
+    bidderName: name,
+    bidderMobile: mobile
+  });
+
+  currentBid = newBid;
+  document.getElementById("currentBid").innerText = currentBid;
+
+  alert("Bid Placed Successfully!");
+};
+
+loadBid();
 </script>
 
 </body>
