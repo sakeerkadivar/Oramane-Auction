@@ -41,7 +41,9 @@ function placeBid() {
   }
 
   if(newBid > currentBid){
+
     currentBid = newBid;
+
     document.getElementById("currentBid").innerText = currentBid;
 
     alert(
@@ -52,7 +54,9 @@ function placeBid() {
     );
 
   } else {
+
     alert("Bid must be higher than current bid");
+
   }
 }
 </script>
