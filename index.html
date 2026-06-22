@@ -17,6 +17,7 @@ img, video{
 
 <h1>Oramane Luxe Auction</h1>
 <h2>Infinity Tipai</h2>
+<p id="productDescription"></p>
 <img id="productImage" width="400">
 
 <br><br>
@@ -75,6 +76,7 @@ async function loadBid() {
     const product = productSnap.data();
 
     document.querySelector("h2").innerText = product.name;
+    document.getElementById("productDescription").innerText = product.description;
 
     document.getElementById("productImage").src = product.imageUrl;
 
