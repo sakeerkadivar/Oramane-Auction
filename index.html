@@ -19,6 +19,7 @@
 <h2>Infinity Tipai</h2>
 
 <p id="productDescription"></p>
+
 <img id="productImage" width="400">
 <br><br>
 
@@ -78,8 +79,10 @@ let minIncrement = 0;
 let auctionClosed = false;
 const endDate = new Date("2026-07-08T12:00:00");
 
+let lastBidTime = {};
 
-// ---------------- TIMER ----------------
+
+// ⏳ TIMER
 setInterval(()=>{
   const now = new Date();
   const diff = endDate - now;
@@ -100,7 +103,7 @@ setInterval(()=>{
 },1000);
 
 
-// ---------------- LOAD DATA ----------------
+// 📦 LOAD DATA
 async function load(){
 
   onSnapshot(doc(db,"Auction","auction1"),(snap)=>{
@@ -134,11 +137,7 @@ async function load(){
 }
 
 
-// ---------------- ANTI SPAM STORAGE ----------------
-let lastBidTime = {};
-
-
-// ---------------- PLACE BID ----------------
+// 🚀 PLACE BID (ANTI SPAM)
 window.placeBid = async function(){
 
   if(auctionClosed) return alert("Auction Closed");
@@ -150,7 +149,7 @@ window.placeBid = async function(){
   if(!name || !mobile) return alert("Enter Name & Mobile");
   if(isNaN(bid)) return alert("Invalid Bid");
 
-  // 🔒 Anti-spam (30 sec per user)
+  // 🔒 Anti spam 30 sec
   const now = Date.now();
   if(lastBidTime[mobile] && now - lastBidTime[mobile] < 30000){
     return alert("Wait 30 seconds before next bid");
@@ -179,7 +178,7 @@ window.placeBid = async function(){
 };
 
 
-// ---------------- HISTORY ----------------
+// 📜 HISTORY
 function loadHistory(){
 
   const q = query(
@@ -200,7 +199,7 @@ function loadHistory(){
 }
 
 
-// ---------------- ADMIN END AUCTION ----------------
+// 🔴 ADMIN END AUCTION
 window.endAuction = async function(){
   await updateDoc(doc(db,"Auction","auction1"),{
     status:"closed"
