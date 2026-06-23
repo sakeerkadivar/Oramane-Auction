@@ -11,11 +11,6 @@
     img, video{
       max-width:90%;
     }
-    #bidHistory div{
-      border:1px solid #ddd;
-      margin:5px;
-      padding:5px;
-    }
   </style>
 </head>
 
@@ -42,6 +37,8 @@
 <h3>Bid History</h3>
 <div id="bidHistory"></div>
 
+<br>
+
 <input id="name" type="text" placeholder="Your Name">
 <br><br>
 
@@ -52,23 +49,10 @@
 <br><br>
 
 <button onclick="placeBid()">Place Bid</button>
-<button onclick="endAuction()">End Auction (Admin)</button>
+<button onclick="endAuction()" style="background:red;color:white;">
+  End Auction (Admin)
+</button>
 
-<!-- ================= ADMIN FUNCTION ================= -->
-<script>
-window.endAuction = async function () {
-  await updateDoc(doc(db, "Auction", "auction1"), {
-    status: "closed"
-  });
-
-  document.getElementById("timer").innerText = "⛔ Auction Closed by Admin";
-  document.querySelector("button").disabled = true;
-
-  alert("Auction Ended by Admin");
-};
-</script>
-
-<!-- ================= FIREBASE ================= -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
 import {
@@ -100,28 +84,33 @@ let currentBid = 0;
 let minIncrement = 0;
 const endDate = new Date("2026-07-08T12:00:00");
 
-// ================= TIMER =================
+// 🔒 Anti-Spam storage
+let lastBidTime = {};
+
+// TIMER
 setInterval(() => {
   const now = new Date();
   const distance = endDate - now;
 
   if (distance <= 0) {
-    document.getElementById("timer").innerHTML = "⛔ Auction Closed";
+    document.getElementById("timer").innerText = "⛔ Auction Closed";
+    document.querySelector("button").disabled = true;
     return;
   }
 
-  const d = Math.floor(distance / (1000 * 60 * 60 * 24));
-  const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-  const s = Math.floor((distance % (1000 * 60)) / 1000);
+  const d = Math.floor(distance / (1000*60*60*24));
+  const h = Math.floor((distance % (1000*60*60*24))/(1000*60*60));
+  const m = Math.floor((distance % (1000*60*60))/(1000*60));
+  const s = Math.floor((distance % (1000*60))/1000);
 
-  document.getElementById("timer").innerHTML =
+  document.getElementById("timer").innerText =
     `Auction Ends In: ${d}d ${h}h ${m}m ${s}s`;
 
 }, 1000);
 
-// ================= LOAD DATA =================
-async function loadData() {
+
+// LOAD DATA
+async function loadBid() {
 
   onSnapshot(doc(db, "Auction", "auction1"), (snap) => {
     if (snap.exists()) {
@@ -134,44 +123,50 @@ async function loadData() {
   });
 
   const productSnap = await getDoc(doc(db, "Products", "product1"));
+
   if (productSnap.exists()) {
     const p = productSnap.data();
     document.querySelector("h2").innerText = p.name || "";
     document.getElementById("productDescription").innerText = p.description || "";
     document.getElementById("productImage").src = p.imageUrl || "";
+
     document.getElementById("productVideo").innerHTML =
       `<source src="${p.videoUrl}" type="video/mp4">`;
   }
 
   const settingSnap = await getDoc(doc(db, "settings", "auction1"));
+
   if (settingSnap.exists()) {
     minIncrement = settingSnap.data().minIncrement || 0;
   }
-
-  loadHistory();
 }
 
-// ================= PLACE BID =================
+
+// 🚀 PLACE BID (ANTI-SPAM ADDED)
 window.placeBid = async function () {
 
   const name = document.getElementById("name").value;
   const mobile = document.getElementById("mobile").value;
   const newBid = parseInt(document.getElementById("bidInput").value);
 
-  if (!name || !mobile) {
-    alert("Enter Name & Mobile");
+  if (!name || !mobile) return alert("Enter Name & Mobile");
+  if (isNaN(newBid)) return alert("Enter valid bid");
+
+  // 🔒 ANTI-SPAM (30 sec rule per mobile)
+  const now = Date.now();
+  if (lastBidTime[mobile] && now - lastBidTime[mobile] < 30000) {
+    alert("Wait 30 seconds before next bid!");
     return;
   }
 
-  if (isNaN(newBid)) {
-    alert("Enter valid bid");
+  // min increment check
+  if (newBid < currentBid + (minIncrement || 0)) {
+    alert(`Bid must be at least ₹${minIncrement} higher`);
     return;
   }
 
-  if (newBid < currentBid + minIncrement) {
-    alert(`Minimum bid increase is ₹${minIncrement}`);
-    return;
-  }
+  // update spam timer
+  lastBidTime[mobile] = now;
 
   await updateDoc(doc(db, "Auction", "auction1"), {
     currentBid: newBid,
@@ -186,11 +181,14 @@ window.placeBid = async function () {
     time: serverTimestamp()
   });
 
-  document.getElementById("bidInput").value = "";
-  alert("Bid Placed!");
+  document.getElementById("currentBid").innerText = newBid;
+  document.getElementById("highestBidder").innerText = name;
+
+  alert("Bid Placed Successfully!");
 };
 
-// ================= HISTORY =================
+
+// 📜 BID HISTORY
 function loadHistory() {
 
   const q = query(
@@ -199,18 +197,38 @@ function loadHistory() {
   );
 
   onSnapshot(q, (snapshot) => {
+
     let html = "";
 
-    snapshot.forEach((d) => {
-      const data = d.data();
-      html += `<div><b>${data.name}</b> bid ₹${data.amount}</div>`;
+    snapshot.forEach((doc) => {
+      const d = doc.data();
+
+      html += `
+        <div style="border:1px solid #ddd;margin:5px;padding:5px;">
+          <b>${d.name}</b> bid ₹${d.amount}
+        </div>
+      `;
     });
 
     document.getElementById("bidHistory").innerHTML = html;
   });
 }
 
-loadData();
+
+// 🔴 ADMIN END AUCTION (ONE LINE STYLE)
+window.endAuction = async function () {
+  await updateDoc(doc(db, "Auction", "auction1"), { status: "closed" });
+
+  document.getElementById("timer").innerText = "⛔ Auction Closed by Admin";
+  document.querySelector("button").disabled = true;
+
+  alert("Auction Ended by Admin");
+};
+
+
+// INIT
+loadBid();
+loadHistory();
 
 </script>
 
