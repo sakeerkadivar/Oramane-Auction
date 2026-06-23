@@ -29,6 +29,8 @@
 
 <br><br>
 
+<p id="timer"></p>
+
 <p>Current Bid: ₹<span id="currentBid">0</span></p>
 
 <p>Highest Bidder:
@@ -74,6 +76,41 @@ const db = getFirestore(app);
 
 let currentBid = 0;
 let minIncrement = 0;
+const endDate = new Date("2026-07-08T12:00:00");
+
+setInterval(() => {
+
+  const now = new Date();
+  const distance = endDate - now;
+
+  if (distance <= 0) {
+
+    document.getElementById("timer").innerHTML =
+      "⛔ Auction Closed";
+
+    document.querySelector("button").disabled = true;
+
+    return;
+  }
+
+  const days =
+    Math.floor(distance / (1000 * 60 * 60 * 24));
+
+  const hours =
+    Math.floor((distance % (1000 * 60 * 60 * 24)) /
+    (1000 * 60 * 60));
+
+  const minutes =
+    Math.floor((distance % (1000 * 60 * 60)) /
+    (1000 * 60));
+
+  const seconds =
+    Math.floor((distance % (1000 * 60)) / 1000);
+
+  document.getElementById("timer").innerHTML =
+    `Auction Ends In: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+}, 1000); 
 
 async function loadBid() {
 
