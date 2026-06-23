@@ -37,6 +37,9 @@
   <span id="highestBidder">No Bid Yet</span>
 </p>
 
+<h3>Bid History</h3>
+<div id="bidHistory"></div>
+
 <input id="name" type="text" placeholder="Your Name">
 
 <br><br>
@@ -60,7 +63,10 @@ import {
   doc,
   getDoc,
   updateDoc,
-  onSnapshot
+  onSnapshot,
+  collection,
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -129,18 +135,6 @@ async function loadBid() {
 
   });
 
-  const snap = await getDoc(doc(db, "Auction", "auction1"));
-
-  if (snap.exists()) {
-
-    currentBid = snap.data().currentBid || 0;
-
-    document.getElementById("currentBid").innerText = currentBid;
-
-    document.getElementById("highestBidder").innerText =
-      snap.data().bidderName || "No Bid Yet";
-  }
-
   const productSnap =
     await getDoc(doc(db, "Products", "product1"));
 
@@ -192,9 +186,9 @@ window.placeBid = async function () {
     return;
   }
 
-  if (newBid < currentBid + minIncrement) {
+  if (newBid < currentBid + (minIncrement || 0)) {
     document.getElementById("bidInput").value = "";
-alert("Bid must be at least ₹500 higher than the current bid.");
+alert(`Bid must be at least ₹${minIncrement} higher than current bid.`);
 
     return;
   }
@@ -208,6 +202,13 @@ alert("Bid must be at least ₹500 higher than the current bid.");
     }
   );
 
+  await addDoc(collection(db, "Auction", "auction1", "bids"), {
+  name: name,
+  mobile: mobile,
+  amount: newBid,
+  time: serverTimestamp()
+});
+
   currentBid = newBid;
 
   document.getElementById("currentBid").innerText =
@@ -220,7 +221,31 @@ alert("Bid must be at least ₹500 higher than the current bid.");
   alert("Bid Placed Successfully!");
 };
 
-loadBid();
+
+  function loadHistory() {
+  const q = query(
+    collection(db, "Auction", "auction1", "bids"),
+    orderBy("time", "desc")
+  );
+
+  onSnapshot(q, (snapshot) => {
+    let html = "";
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+
+      html += `
+        <div style="border:1px solid #ddd; margin:5px; padding:5px;">
+          <b>${data.name}</b> bid ₹${data.amount}
+        </div>
+      `;
+    });
+
+    document.getElementById("bidHistory").innerHTML = html;
+  });
+}
+  loadBid();
+  loadHistory();
 
 </script>
 
