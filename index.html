@@ -59,7 +59,8 @@ import {
   getFirestore,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -112,7 +113,21 @@ setInterval(() => {
 
 }, 1000); 
 
-async function loadBid() {
+async function loadBid() { 
+    onSnapshot(doc(db, "Auction", "auction1"), (snap) => {
+
+    if (snap.exists()) {
+
+      currentBid = snap.data().currentBid || 0;
+
+      document.getElementById("currentBid").innerText =
+        currentBid;
+
+      document.getElementById("highestBidder").innerText =
+        snap.data().bidderName || "No Bid Yet";
+    }
+
+  });
 
   const snap = await getDoc(doc(db, "Auction", "auction1"));
 
