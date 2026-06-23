@@ -8,12 +8,17 @@
       text-align:center;
       font-family:Arial, sans-serif;
     }
-
     img, video{
       max-width:90%;
     }
+    #bidHistory div{
+      border:1px solid #ddd;
+      margin:5px;
+      padding:5px;
+    }
   </style>
 </head>
+
 <body>
 
 <h1>Oramane Luxe Auction</h1>
@@ -22,7 +27,6 @@
 <p id="productDescription"></p>
 
 <img id="productImage" width="400">
-
 <br><br>
 
 <video id="productVideo" width="400" controls></video>
@@ -33,31 +37,40 @@
 
 <p>Current Bid: ₹<span id="currentBid">0</span></p>
 
-<p>Highest Bidder:
-  <span id="highestBidder">No Bid Yet</span>
-</p>
+<p>Highest Bidder: <span id="highestBidder">No Bid Yet</span></p>
 
 <h3>Bid History</h3>
 <div id="bidHistory"></div>
 
 <input id="name" type="text" placeholder="Your Name">
-
 <br><br>
 
 <input id="mobile" type="tel" placeholder="Mobile Number">
-
 <br><br>
 
 <input id="bidInput" type="number" placeholder="Enter Your Bid">
-
 <br><br>
 
 <button onclick="placeBid()">Place Bid</button>
+<button onclick="endAuction()">End Auction (Admin)</button>
 
+<!-- ================= ADMIN FUNCTION ================= -->
+<script>
+window.endAuction = async function () {
+  await updateDoc(doc(db, "Auction", "auction1"), {
+    status: "closed"
+  });
+
+  document.getElementById("timer").innerText = "⛔ Auction Closed by Admin";
+  document.querySelector("button").disabled = true;
+
+  alert("Auction Ended by Admin");
+};
+</script>
+
+<!-- ================= FIREBASE ================= -->
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-
 import {
   getFirestore,
   doc,
@@ -66,7 +79,9 @@ import {
   onSnapshot,
   collection,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -85,144 +100,99 @@ let currentBid = 0;
 let minIncrement = 0;
 const endDate = new Date("2026-07-08T12:00:00");
 
+// ================= TIMER =================
 setInterval(() => {
-
   const now = new Date();
   const distance = endDate - now;
 
   if (distance <= 0) {
-
-    document.getElementById("timer").innerHTML =
-      "⛔ Auction Closed";
-
-    document.querySelector("button").disabled = true;
-
+    document.getElementById("timer").innerHTML = "⛔ Auction Closed";
     return;
   }
 
-  const days =
-    Math.floor(distance / (1000 * 60 * 60 * 24));
-
-  const hours =
-    Math.floor((distance % (1000 * 60 * 60 * 24)) /
-    (1000 * 60 * 60));
-
-  const minutes =
-    Math.floor((distance % (1000 * 60 * 60)) /
-    (1000 * 60));
-
-  const seconds =
-    Math.floor((distance % (1000 * 60)) / 1000);
+  const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+  const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  const s = Math.floor((distance % (1000 * 60)) / 1000);
 
   document.getElementById("timer").innerHTML =
-    `Auction Ends In: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+    `Auction Ends In: ${d}d ${h}h ${m}m ${s}s`;
 
-}, 1000); 
+}, 1000);
 
-async function loadBid() { 
-    onSnapshot(doc(db, "Auction", "auction1"), (snap) => {
+// ================= LOAD DATA =================
+async function loadData() {
 
+  onSnapshot(doc(db, "Auction", "auction1"), (snap) => {
     if (snap.exists()) {
-
       currentBid = snap.data().currentBid || 0;
 
-      document.getElementById("currentBid").innerText =
-        currentBid;
-
+      document.getElementById("currentBid").innerText = currentBid;
       document.getElementById("highestBidder").innerText =
         snap.data().bidderName || "No Bid Yet";
     }
-
   });
 
-  const productSnap =
-    await getDoc(doc(db, "Products", "product1"));
-
+  const productSnap = await getDoc(doc(db, "Products", "product1"));
   if (productSnap.exists()) {
-
-    const product = productSnap.data();
-
-    document.querySelector("h2").innerText =
-      product.name || "";
-
-    document.getElementById("productDescription").innerText =
-      product.description || "";
-
-    document.getElementById("productImage").src =
-      product.imageUrl || "";
-
+    const p = productSnap.data();
+    document.querySelector("h2").innerText = p.name || "";
+    document.getElementById("productDescription").innerText = p.description || "";
+    document.getElementById("productImage").src = p.imageUrl || "";
     document.getElementById("productVideo").innerHTML =
-      `<source src="${product.videoUrl}" type="video/mp4">`;
+      `<source src="${p.videoUrl}" type="video/mp4">`;
   }
 
-  const settingSnap =
-    await getDoc(doc(db, "settings", "auction1"));
-
+  const settingSnap = await getDoc(doc(db, "settings", "auction1"));
   if (settingSnap.exists()) {
-    minIncrement =
-      settingSnap.data().minIncrement || 0;
+    minIncrement = settingSnap.data().minIncrement || 0;
   }
 
+  loadHistory();
 }
 
+// ================= PLACE BID =================
 window.placeBid = async function () {
 
-  const name =
-    document.getElementById("name").value;
-
-  const mobile =
-    document.getElementById("mobile").value;
-
-  const newBid =
-    parseInt(document.getElementById("bidInput").value);
+  const name = document.getElementById("name").value;
+  const mobile = document.getElementById("mobile").value;
+  const newBid = parseInt(document.getElementById("bidInput").value);
 
   if (!name || !mobile) {
-    alert("Please enter Name and Mobile");
+    alert("Enter Name & Mobile");
     return;
   }
 
   if (isNaN(newBid)) {
-    alert("Please enter valid bid");
+    alert("Enter valid bid");
     return;
   }
 
-  if (newBid < currentBid + (minIncrement || 0)) {
-    document.getElementById("bidInput").value = "";
-alert(`Bid must be at least ₹${minIncrement} higher than current bid.`);
-
+  if (newBid < currentBid + minIncrement) {
+    alert(`Minimum bid increase is ₹${minIncrement}`);
     return;
   }
 
-  await updateDoc(
-    doc(db, "Auction", "auction1"),
-    {
-      currentBid: newBid,
-      bidderName: name,
-      bidderMobile: mobile
-    }
-  );
+  await updateDoc(doc(db, "Auction", "auction1"), {
+    currentBid: newBid,
+    bidderName: name,
+    bidderMobile: mobile
+  });
 
   await addDoc(collection(db, "Auction", "auction1", "bids"), {
-  name: name,
-  mobile: mobile,
-  amount: newBid,
-  time: serverTimestamp()
-});
-
-  currentBid = newBid;
-
-  document.getElementById("currentBid").innerText =
-    currentBid;
-
-  document.getElementById("highestBidder").innerText =
-    name;
+    name,
+    mobile,
+    amount: newBid,
+    time: serverTimestamp()
+  });
 
   document.getElementById("bidInput").value = "";
-  alert("Bid Placed Successfully!");
+  alert("Bid Placed!");
 };
 
+// ================= HISTORY =================
+function loadHistory() {
 
-  function loadHistory() {
   const q = query(
     collection(db, "Auction", "auction1", "bids"),
     orderBy("time", "desc")
@@ -231,21 +201,16 @@ alert(`Bid must be at least ₹${minIncrement} higher than current bid.`);
   onSnapshot(q, (snapshot) => {
     let html = "";
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-
-      html += `
-        <div style="border:1px solid #ddd; margin:5px; padding:5px;">
-          <b>${data.name}</b> bid ₹${data.amount}
-        </div>
-      `;
+    snapshot.forEach((d) => {
+      const data = d.data();
+      html += `<div><b>${data.name}</b> bid ₹${data.amount}</div>`;
     });
 
     document.getElementById("bidHistory").innerHTML = html;
   });
 }
-  loadBid();
-  loadHistory();
+
+loadData();
 
 </script>
 
