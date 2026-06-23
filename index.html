@@ -19,23 +19,22 @@
 <h2>Infinity Tipai</h2>
 
 <p id="productDescription"></p>
-
 <img id="productImage" width="400">
 <br><br>
 
 <video id="productVideo" width="400" controls></video>
 
-<p id="timer"></p>
+<h3 id="timer"></h3>
 
-<h3>Current Bid: ₹<span id="currentBid">0</span></h3>
-<h3>Highest Bidder: <span id="highestBidder">No Bid Yet</span></h3>
+<h2>₹ <span id="currentBid">0</span></h2>
+<p>Highest Bidder: <span id="highestBidder">No Bid Yet</span></p>
 
 <hr>
 
 <h3>Login</h3>
 <input id="name" placeholder="Name">
-<input id="mobile" placeholder="Mobile (Login ID)">
-<br>
+<input id="mobile" placeholder="Mobile">
+<br><br>
 
 <h3>Place Bid</h3>
 <input id="bidInput" type="number" placeholder="Enter Bid">
@@ -43,7 +42,7 @@
 
 <button onclick="placeBid()">Place Bid</button>
 <button onclick="endAuction()" style="background:red;color:white;">
-End Auction (Admin)
+Admin End Auction
 </button>
 
 <h3>Bid History</h3>
@@ -60,16 +59,15 @@ import {
   collection,
   addDoc,
   serverTimestamp,
-  query,
-  orderBy,
   setDoc,
-  getDoc as getSingleDoc
+  query,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAo3IRVpwQuHYbe7_MnqCWEO_GRFav2QP8",
   authDomain: "oramane-lux-auction-4e10e.firebaseapp.com",
-  projectId: "oramane-lux-auction-4e10e",
+  projectId: "oramane-lux-auction-4e10e"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -78,33 +76,32 @@ const db = getFirestore(app);
 let currentBid = 0;
 let minIncrement = 0;
 let auctionClosed = false;
-
 const endDate = new Date("2026-07-08T12:00:00");
 
 
-// ================= TIMER =================
-setInterval(() => {
+// ---------------- TIMER ----------------
+setInterval(()=>{
   const now = new Date();
   const diff = endDate - now;
 
-  if (diff <= 0 || auctionClosed) {
+  if(diff <= 0 || auctionClosed){
     document.getElementById("timer").innerText = "⛔ Auction Closed";
     document.querySelector("button").disabled = true;
     return;
   }
 
-  const d = Math.floor(diff/(1000*60*60*24));
-  const h = Math.floor((diff%(1000*60*60*24))/(1000*60*60));
-  const m = Math.floor((diff%(1000*60*60))/(1000*60));
-  const s = Math.floor((diff%(1000*60))/1000);
+  let d = Math.floor(diff/86400000);
+  let h = Math.floor((diff%86400000)/3600000);
+  let m = Math.floor((diff%3600000)/60000);
+  let s = Math.floor((diff%60000)/1000);
 
   document.getElementById("timer").innerText =
     `Ends In: ${d}d ${h}h ${m}m ${s}s`;
 },1000);
 
 
-// ================= LOAD =================
-async function load() {
+// ---------------- LOAD DATA ----------------
+async function load(){
 
   onSnapshot(doc(db,"Auction","auction1"),(snap)=>{
     if(snap.exists()){
@@ -120,12 +117,12 @@ async function load() {
 
   const p = await getDoc(doc(db,"Products","product1"));
   if(p.exists()){
-    const data = p.data();
-    document.querySelector("h2").innerText = data.name;
-    document.getElementById("productDescription").innerText = data.description;
-    document.getElementById("productImage").src = data.imageUrl;
+    const d = p.data();
+    document.querySelector("h2").innerText = d.name;
+    document.getElementById("productDescription").innerText = d.description;
+    document.getElementById("productImage").src = d.imageUrl;
     document.getElementById("productVideo").innerHTML =
-      `<source src="${data.videoUrl}" type="video/mp4">`;
+      `<source src="${d.videoUrl}" type="video/mp4">`;
   }
 
   const s = await getDoc(doc(db,"settings","auction1"));
@@ -137,41 +134,33 @@ async function load() {
 }
 
 
-// ================= ANTI SPAM + LOGIN =================
+// ---------------- ANTI SPAM STORAGE ----------------
+let lastBidTime = {};
+
+
+// ---------------- PLACE BID ----------------
 window.placeBid = async function(){
 
-  if(auctionClosed) return alert("Auction closed");
+  if(auctionClosed) return alert("Auction Closed");
 
   const name = document.getElementById("name").value;
   const mobile = document.getElementById("mobile").value;
   const bid = parseInt(document.getElementById("bidInput").value);
 
-  if(!name || !mobile) return alert("Login required");
-  if(isNaN(bid)) return alert("Invalid bid");
+  if(!name || !mobile) return alert("Enter Name & Mobile");
+  if(isNaN(bid)) return alert("Invalid Bid");
 
-  // 🔒 SERVER CHECK (ANTI-SPAM)
-  const userRef = doc(db,"Users",mobile);
-  const userSnap = await getSingleDoc(userRef);
-
+  // 🔒 Anti-spam (30 sec per user)
   const now = Date.now();
-
-  if(userSnap.exists()){
-    const last = userSnap.data().lastBidTime || 0;
-
-    if(now - last < 30000){
-      return alert("Wait 30 seconds before next bid");
-    }
+  if(lastBidTime[mobile] && now - lastBidTime[mobile] < 30000){
+    return alert("Wait 30 seconds before next bid");
   }
 
   if(bid < currentBid + minIncrement){
     return alert("Bid too low");
   }
 
-  // update user spam time
-  await setDoc(userRef,{
-    name,
-    lastBidTime: now
-  },{merge:true});
+  lastBidTime[mobile] = now;
 
   await updateDoc(doc(db,"Auction","auction1"),{
     currentBid: bid,
@@ -186,11 +175,11 @@ window.placeBid = async function(){
     time: serverTimestamp()
   });
 
-  alert("Bid placed!");
+  alert("Bid Placed!");
 };
 
 
-// ================= HISTORY =================
+// ---------------- HISTORY ----------------
 function loadHistory(){
 
   const q = query(
@@ -211,18 +200,19 @@ function loadHistory(){
 }
 
 
-// ================= ADMIN =================
+// ---------------- ADMIN END AUCTION ----------------
 window.endAuction = async function(){
   await updateDoc(doc(db,"Auction","auction1"),{
     status:"closed"
   });
 
-  alert("Auction Closed");
+  alert("Auction Ended");
 };
 
 
 // INIT
 load();
+
 </script>
 
 </body>
