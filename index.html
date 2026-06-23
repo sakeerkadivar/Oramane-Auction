@@ -141,11 +141,7 @@ window.placeBid = async function () {
   }
 
   if (newBid < currentBid + minIncrement) {
-
-    alert(
-      "Minimum bid must be ₹" +
-      (currentBid + minIncrement)
-    );
+alert("Bid must be at least ₹500 higher than the current bid.");
 
     return;
   }
