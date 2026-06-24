@@ -124,6 +124,10 @@ async function loadData() {
 
     const status = snap.data().status || "open";
 
+document.getElementById("currentBid").innerText = currentBid;
+document.getElementById("highestBidder").innerText =
+  snap.data().bidderName || "No Bid Yet";
+
 if(status === "closed"){
 
   document.getElementById("timer").innerHTML =
@@ -144,9 +148,7 @@ if(status === "closed"){
 
   return;
 }
-    document.getElementById("currentBid").innerText = currentBid;
-    document.getElementById("highestBidder").innerText =
-      snap.data().bidderName || "No Bid Yet";
+    
   }
 });
 
