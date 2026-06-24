@@ -91,6 +91,11 @@ const endDate = new Date("2026-07-08T12:00:00");
 
 // ================= TIMER =================
 setInterval(() => {
+  if(document.getElementById("bidBtn").disabled){
+  document.getElementById("timer").innerHTML =
+  "⛔ Auction Closed";
+  return;
+}
   const now = new Date();
   const distance = endDate - now;
 
@@ -118,12 +123,15 @@ async function loadData() {
 
     const status = snap.data().status || "open";
 
-    if(status === "closed"){
-      document.getElementById("timer").innerText =
-        "⛔ Auction Closed";
+ if(status === "closed"){
 
-     document.getElementById("bidBtn").disabled = true;
-    }
+  document.getElementById("timer").innerHTML =
+  "⛔ Auction Closed";
+
+  document.getElementById("bidBtn").disabled = true;
+
+  return;
+}
 
     document.getElementById("currentBid").innerText = currentBid;
     document.getElementById("highestBidder").innerText =
