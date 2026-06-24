@@ -62,7 +62,7 @@ window.endAuction = async function () {
   });
 
   document.getElementById("timer").innerText = "⛔ Auction Closed by Admin";
-  document.querySelector("button").disabled = true;
+  document.querySelector('button[onclick="placeBid()"]').disabled = true;
 
   alert("Auction Ended by Admin");
 };
@@ -124,14 +124,23 @@ setInterval(() => {
 async function loadData() {
 
   onSnapshot(doc(db, "Auction", "auction1"), (snap) => {
-    if (snap.exists()) {
-      currentBid = snap.data().currentBid || 0;
+  if (snap.exists()) {
+    currentBid = snap.data().currentBid || 0;
 
-      document.getElementById("currentBid").innerText = currentBid;
-      document.getElementById("highestBidder").innerText =
-        snap.data().bidderName || "No Bid Yet";
+    const status = snap.data().status || "open";
+
+    if(status === "closed"){
+      document.getElementById("timer").innerText =
+        "⛔ Auction Closed";
+
+      document.querySelector('button[onclick="placeBid()"]').disabled = true;
     }
-  });
+
+    document.getElementById("currentBid").innerText = currentBid;
+    document.getElementById("highestBidder").innerText =
+      snap.data().bidderName || "No Bid Yet";
+  }
+});
 
   const productSnap = await getDoc(doc(db, "Products", "product1"));
   if (productSnap.exists()) {
@@ -154,6 +163,14 @@ async function loadData() {
 // ================= PLACE BID =================
 window.placeBid = async function () {
 
+  const auctionSnap = await getDoc(
+  doc(db, "Auction", "auction1")
+);
+
+if(auctionSnap.data().status === "closed"){
+  alert("Auction Closed");
+  return;
+}
   const name = document.getElementById("name").value;
   const mobile = document.getElementById("mobile").value;
   const newBid = parseInt(document.getElementById("bidInput").value);
