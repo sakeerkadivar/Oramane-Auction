@@ -135,16 +135,7 @@ if(status === "closed"){
 
   document.getElementById("bidBtn").disabled = true;
 
-  if(!winnerShown){
-    winnerShown = true;
 
-    alert(
-      "🏆 Winner: " +
-      (snap.data().bidderName || "No Winner") +
-      "\nBid: ₹" +
-      currentBid
-    );
-  }
 
   return;
 }
