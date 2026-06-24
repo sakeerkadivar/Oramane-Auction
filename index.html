@@ -88,6 +88,7 @@ const db = getFirestore(app);
 let currentBid = 0;
 let minIncrement = 0;
 const endDate = new Date("2026-07-08T12:00:00");
+  let winnerShown = false;
 
 // ================= TIMER =================
 setInterval(() => {
@@ -123,16 +124,26 @@ async function loadData() {
 
     const status = snap.data().status || "open";
 
- if(status === "closed"){
+if(status === "closed"){
 
   document.getElementById("timer").innerHTML =
   "⛔ Auction Closed";
 
   document.getElementById("bidBtn").disabled = true;
 
+  if(!winnerShown){
+    winnerShown = true;
+
+    alert(
+      "🏆 Winner: " +
+      (snap.data().bidderName || "No Winner") +
+      "\nBid: ₹" +
+      currentBid
+    );
+  }
+
   return;
 }
-
     document.getElementById("currentBid").innerText = currentBid;
     document.getElementById("highestBidder").innerText =
       snap.data().bidderName || "No Bid Yet";
@@ -228,8 +239,6 @@ loadData();
 document.getElementById("bidBtn").onclick = placeBid;
 
 document.getElementById("closeBtn").onclick = async () => {
-
-  alert("Button Clicked");
 
   try {
     await updateDoc(doc(db, "Auction", "auction1"), {
