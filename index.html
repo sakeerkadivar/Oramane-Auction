@@ -1,30 +1,75 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
 <head>
-  <title>Pro Auction System</title>  <style>
+  <title>Oramane Luxe Auction</title>
+
+  <style>
     body{
       text-align:center;
-      font-family:Arial;
+      font-family:Arial, sans-serif;
     }
-    input,button{margin:5px;padding:8px;}
-    img,video{max-width:90%;}
-  </style></head><body><h1>🔥 PRO AUCTION</h1><h2 id="productName"></h2><p id="timer"></p><h2>₹ <span id="currentBid">0</span></h2>
-<p>Winner: <span id="winner">---</span></p><hr><h3>OTP LOGIN</h3>
-<input id="phone" placeholder="+91xxxxxxxxxx">
-<div id="recaptcha-container"></div>
-<button onclick="sendOTP()">Send OTP</button><input id="otp" placeholder="Enter OTP">
-<button onclick="verifyOTP()">Verify</button><hr><h3>Place Bid</h3>
-<input id="name" placeholder="Name">
-<input id="bid" type="number" placeholder="Enter Bid">
-<br>
-<button onclick="placeBid()">Bid Now</button><hr><h3>Payment</h3>
-<button onclick="payUPI()">Pay via UPI</button><hr><button onclick="sendWhatsApp()">Share on WhatsApp</button>
+    img, video{
+      max-width:90%;
+    }
+    #bidHistory div{
+      border:1px solid #ddd;
+      margin:5px;
+      padding:5px;
+    }
+  </style>
+</head>
 
-<div id="popup" style="display:none;position:fixed;top:30%;left:20%;right:20%;background:#fff;border:2px solid #000;padding:20px;">
-  <h2>🏆 Winner</h2>
-  <p id="winText"></p>
-  <button onclick="document.getElementById('popup').style.display='none'">Close</button>
-</div><script type="module">
+<body>
 
+<h1>Oramane Luxe Auction</h1>
+<h2>Infinity Tipai</h2>
+
+<p id="productDescription"></p>
+
+<img id="productImage" width="400">
+<br><br>
+
+<video id="productVideo" width="400" controls></video>
+
+<br><br>
+
+<p id="timer"></p>
+
+<p>Current Bid: ₹<span id="currentBid">0</span></p>
+
+<p>Highest Bidder: <span id="highestBidder">No Bid Yet</span></p>
+
+<h3>Bid History</h3>
+<div id="bidHistory"></div>
+
+<input id="name" type="text" placeholder="Your Name">
+<br><br>
+
+<input id="mobile" type="tel" placeholder="Mobile Number">
+<br><br>
+
+<input id="bidInput" type="number" placeholder="Enter Your Bid">
+<br><br>
+
+<button onclick="placeBid()">Place Bid</button>
+<button onclick="endAuction()">End Auction (Admin)</button>
+
+<!-- ================= ADMIN FUNCTION ================= -->
+<script>
+window.endAuction = async function () {
+  await updateDoc(doc(db, "Auction", "auction1"), {
+    status: "closed"
+  });
+
+  document.getElementById("timer").innerText = "⛔ Auction Closed by Admin";
+  document.querySelector("button").disabled = true;
+
+  alert("Auction Ended by Admin");
+};
+</script>
+
+<!-- ================= FIREBASE ================= -->
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
 import {
   getFirestore,
@@ -32,16 +77,12 @@ import {
   getDoc,
   updateDoc,
   onSnapshot,
-  addDoc,
   collection,
-  serverTimestamp
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
-
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber
-} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAo3IRVpwQuHYbe7_MnqCWEO_GRFav2QP8",
@@ -49,103 +90,129 @@ const firebaseConfig = {
   projectId: "oramane-lux-auction-4e10e",
   storageBucket: "oramane-lux-auction-4e10e.firebasestorage.app",
   messagingSenderId: "233399631370",
-  appId: "1:233399631370:web:c3179128b25b50a0a8e9f3",
-  measurementId: "G-PXRGLGR5SM"
+  appId: "1:233399631370:web:c3179128b25b50a0a8e9f3"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-let user = null;
 let currentBid = 0;
-let lastTime = 0;
+let minIncrement = 0;
+const endDate = new Date("2026-07-08T12:00:00");
 
-window.sendOTP = async function(){
+// ================= TIMER =================
+setInterval(() => {
+  const now = new Date();
+  const distance = endDate - now;
 
-  window.recaptchaVerifier = new RecaptchaVerifier(auth,'recaptcha-container',{});
-
-  const phone = document.getElementById("phone").value;
-
-  window.confirmationResult = await signInWithPhoneNumber(
-    auth,
-    phone,
-    window.recaptchaVerifier
-  );
-
-  alert("OTP Sent");
-};
-
-window.verifyOTP = async function(){
-  const otp = document.getElementById("otp").value;
-
-  const result = await window.confirmationResult.confirm(otp);
-  user = result.user;
-
-  alert("Login Success");
-};
-
-function load(){
-
-  onSnapshot(doc(db,"Auction","auction1"),(snap)=>{
-    const d = snap.data();
-    currentBid = d.currentBid || 0;
-
-    document.getElementById("currentBid").innerText = currentBid;
-    document.getElementById("winner").innerText = d.bidderName || "---";
-
-    if(d.status === "closed"){
-      showWinner(d.bidderName, d.currentBid);
-    }
-  });
-}
-
-window.placeBid = async function(){
-
-  if(!user) return alert("Login first");
-
-  const name = document.getElementById("name").value;
-  const bid = parseInt(document.getElementById("bid").value);
-
-  if(bid <= currentBid) return alert("Higher bid needed");
-
-  if(Date.now() - lastTime < 20000){
-    return alert("Wait 20 sec");
+  if (distance <= 0) {
+    document.getElementById("timer").innerHTML = "⛔ Auction Closed";
+    return;
   }
 
-  lastTime = Date.now();
+  const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+  const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  const s = Math.floor((distance % (1000 * 60)) / 1000);
 
-  await updateDoc(doc(db,"Auction","auction1"),{
-    currentBid: bid,
-    bidderName: name
+  document.getElementById("timer").innerHTML =
+    `Auction Ends In: ${d}d ${h}h ${m}m ${s}s`;
+
+}, 1000);
+
+// ================= LOAD DATA =================
+async function loadData() {
+
+  onSnapshot(doc(db, "Auction", "auction1"), (snap) => {
+    if (snap.exists()) {
+      currentBid = snap.data().currentBid || 0;
+
+      document.getElementById("currentBid").innerText = currentBid;
+      document.getElementById("highestBidder").innerText =
+        snap.data().bidderName || "No Bid Yet";
+    }
   });
 
-  await addDoc(collection(db,"Auction","auction1","bids"),{
+  const productSnap = await getDoc(doc(db, "Products", "product1"));
+  if (productSnap.exists()) {
+    const p = productSnap.data();
+    document.querySelector("h2").innerText = p.name || "";
+    document.getElementById("productDescription").innerText = p.description || "";
+    document.getElementById("productImage").src = p.imageUrl || "";
+    document.getElementById("productVideo").innerHTML =
+      `<source src="${p.videoUrl}" type="video/mp4">`;
+  }
+
+  const settingSnap = await getDoc(doc(db, "settings", "auction1"));
+  if (settingSnap.exists()) {
+    minIncrement = settingSnap.data().minIncrement || 0;
+  }
+
+  loadHistory();
+}
+
+// ================= PLACE BID =================
+window.placeBid = async function () {
+
+  const name = document.getElementById("name").value;
+  const mobile = document.getElementById("mobile").value;
+  const newBid = parseInt(document.getElementById("bidInput").value);
+
+  if (!name || !mobile) {
+    alert("Enter Name & Mobile");
+    return;
+  }
+
+  if (isNaN(newBid)) {
+    alert("Enter valid bid");
+    return;
+  }
+
+  if (newBid < currentBid + minIncrement) {
+    alert(`Minimum bid increase is ₹${minIncrement}`);
+    return;
+  }
+
+  await updateDoc(doc(db, "Auction", "auction1"), {
+    currentBid: newBid,
+    bidderName: name,
+    bidderMobile: mobile
+  });
+
+  await addDoc(collection(db, "Auction", "auction1", "bids"), {
     name,
-    amount: bid,
+    mobile,
+    amount: newBid,
     time: serverTimestamp()
   });
 
-  alert("Bid placed");
+  document.getElementById("bidInput").value = "";
+  alert("Bid Placed!");
 };
 
-window.payUPI = function(){
-  const upiLink = "upi://pay?pa=yourupi@upi&pn=Auction&am="+currentBid+"&cu=INR";
-  window.location.href = upiLink;
-};
+// ================= HISTORY =================
+function loadHistory() {
 
-window.sendWhatsApp = function(){
-  const msg = `🔥 Auction Update\nCurrent Bid: ₹${currentBid}`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
-};
+  const q = query(
+    collection(db, "Auction", "auction1", "bids"),
+    orderBy("time", "desc")
+  );
 
-function showWinner(name, amount){
-  document.getElementById("popup").style.display = "block";
-  document.getElementById("winText").innerText =
-    `${name} won at ₹${amount}`;
+  onSnapshot(q, (snapshot) => {
+    let html = "";
+
+    snapshot.forEach((d) => {
+      const data = d.data();
+      html += `<div><b>${data.name}</b> bid ₹${data.amount}</div>`;
+    });
+
+    document.getElementById("bidHistory").innerHTML = html;
+  });
 }
 
-load();
+loadData();
 
-</script></body>
+</script>
+
+</body>
 </html>
