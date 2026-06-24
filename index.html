@@ -51,8 +51,8 @@
 <input id="bidInput" type="number" placeholder="Enter Your Bid">
 <br><br>
 
-<button onclick="placeBid()">Place Bid</button>
-<button onclick="endAuction()">End Auction (Admin)</button>
+<button id="bidBtn">Place Bid</button>
+<button id="closeBtn">End Auction (Admin)</button>
 
 <!-- ================= ADMIN FUNCTION ================= -->
 <script>
@@ -229,6 +229,11 @@ function loadHistory() {
 }
 
 loadData();
+document.getElementById("bidBtn").onclick = placeBid;
+
+document.getElementById("closeBtn").onclick = () => {
+  alert("Button Clicked");
+};
 
 </script>
 
