@@ -55,19 +55,7 @@
 <button id="closeBtn">End Auction (Admin)</button>
 
 <!-- ================= ADMIN FUNCTION ================= -->
-<script>
-window.endAuction = async function () {
-  alert("Button Clicked");
-  await updateDoc(doc(db, "Auction", "auction1"), {
-    status: "closed"
-  });
 
-  document.getElementById("timer").innerText = "⛔ Auction Closed by Admin";
-  document.querySelector('button[onclick="placeBid()"]').disabled = true;
-
-  alert("Auction Ended by Admin");
-};
-</script>
 
 <!-- ================= FIREBASE ================= -->
 <script type="module">
@@ -134,7 +122,7 @@ async function loadData() {
       document.getElementById("timer").innerText =
         "⛔ Auction Closed";
 
-      document.querySelector('button[onclick="placeBid()"]').disabled = true;
+     document.getElementById("bidBtn").disabled = true;
     }
 
     document.getElementById("currentBid").innerText = currentBid;
@@ -231,8 +219,20 @@ function loadHistory() {
 loadData();
 document.getElementById("bidBtn").onclick = placeBid;
 
-document.getElementById("closeBtn").onclick = () => {
+document.getElementById("closeBtn").onclick = async () => {
+
   alert("Button Clicked");
+
+  try {
+    await updateDoc(doc(db, "Auction", "auction1"), {
+      status: "closed"
+    });
+
+    alert("Auction Closed Successfully");
+
+  } catch (error) {
+    alert(error.message);
+  }
 };
 
 </script>
