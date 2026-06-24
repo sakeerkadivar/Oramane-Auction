@@ -57,6 +57,7 @@
 <!-- ================= ADMIN FUNCTION ================= -->
 <script>
 window.endAuction = async function () {
+  alert("Button Clicked");
   await updateDoc(doc(db, "Auction", "auction1"), {
     status: "closed"
   });
