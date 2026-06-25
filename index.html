@@ -234,11 +234,21 @@ document.getElementById("bidBtn").onclick = placeBid;
 document.getElementById("closeBtn").onclick = async () => {
 
   try {
-    await updateDoc(doc(db, "Auction", "auction1"), {
+
+    const auctionRef = doc(db, "Auction", "auction1");
+
+    await updateDoc(auctionRef, {
       status: "closed"
     });
 
-    alert("Auction Closed Successfully");
+    const snap = await getDoc(auctionRef);
+
+    alert(
+      "🏆 Winner: " +
+      (snap.data().bidderName || "No Winner") +
+      "\nBid: ₹" +
+      snap.data().currentBid
+    );
 
   } catch (error) {
     alert(error.message);
