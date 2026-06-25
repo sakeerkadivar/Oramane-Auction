@@ -131,23 +131,32 @@ new RecaptchaVerifier(
 document.getElementById("sendOtpBtn").onclick =
 async () => {
 
-  const phone =
-  "+91" +
-  document.getElementById("mobileNumber").value;
+  try {
 
-  const appVerifier =
-  window.recaptchaVerifier;
+    const phone =
+    "+91" +
+    document.getElementById("mobileNumber").value;
 
-  window.confirmationResult =
-  await signInWithPhoneNumber(
-    auth,
-    phone,
-    appVerifier
-  );
+    const appVerifier =
+    window.recaptchaVerifier;
 
-  alert("OTP Sent");
+    window.confirmationResult =
+    await signInWithPhoneNumber(
+      auth,
+      phone,
+      appVerifier
+    );
+
+    alert("OTP Sent");
+
+  } catch(error) {
+
+    alert(error.message);
+    console.log(error);
+
+  }
+
 };
-
 document.getElementById("verifyOtpBtn").onclick =
 async () => {
 
