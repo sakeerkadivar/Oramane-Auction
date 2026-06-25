@@ -20,6 +20,34 @@
 </head>
 
 <body>
+  <div id="loginBox">
+    <div id="recaptcha-container"></div>
+
+  <h2>Login</h2>
+
+  <input id="mobileNumber" type="tel"
+         placeholder="Mobile Number">
+
+  <br><br>
+
+  <button id="sendOtpBtn">
+    Send OTP
+  </button>
+
+  <br><br>
+
+  <input id="otpCode" type="text"
+         placeholder="Enter OTP">
+
+  <br><br>
+
+  <button id="verifyOtpBtn">
+    Verify OTP
+  </button>
+
+</div>
+
+<hr>
 
 <h1>Oramane Luxe Auction</h1>
 <h2>Infinity Tipai</h2>
@@ -60,6 +88,11 @@
 <!-- ================= FIREBASE ================= -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+  import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 import {
   getFirestore,
   doc,
@@ -84,7 +117,56 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
+window.recaptchaVerifier =
+new RecaptchaVerifier(
+  auth,
+  "recaptcha-container",
+  {
+    size: "normal"
+  }
+);
+
+document.getElementById("sendOtpBtn").onclick =
+async () => {
+
+  const phone =
+  "+91" +
+  document.getElementById("mobileNumber").value;
+
+  const appVerifier =
+  window.recaptchaVerifier;
+
+  window.confirmationResult =
+  await signInWithPhoneNumber(
+    auth,
+    phone,
+    appVerifier
+  );
+
+  alert("OTP Sent");
+};
+
+document.getElementById("verifyOtpBtn").onclick =
+async () => {
+
+  const code =
+  document.getElementById("otpCode").value;
+
+  await window.confirmationResult.confirm(code);
+
+  alert("Login Success");
+const userPhone =
+document.getElementById("mobileNumber").value;
+
+if(userPhone === "9876543210"){
+  document.getElementById("closeBtn").style.display = "inline-block";
+}
+
+  document.getElementById("loginBox").style.display =
+  "none";
+};
 let currentBid = 0;
 let minIncrement = 0;
 const endDate = new Date("2026-07-08T12:00:00");
@@ -227,6 +309,7 @@ function loadHistory() {
     document.getElementById("bidHistory").innerHTML = html;
   });
 }
+document.getElementById("closeBtn").style.display = "none";
 
 loadData();
 document.getElementById("bidBtn").onclick = placeBid;
