@@ -54,6 +54,7 @@
 
 <button id="bidBtn">Place Bid</button>
 <button id="closeBtn">End Auction (Admin)</button>
+<button id="adminLoginBtn">Admin Login</button>
 
 <!-- ================= ADMIN FUNCTION ================= -->
 
@@ -259,6 +260,25 @@ document.getElementById("closeBtn").onclick = async () => {
     alert(error.message);
   }
 };
+document.getElementById("adminLoginBtn").onclick = () => {
+
+  const pass = prompt("Enter Admin Password");
+
+  if(pass === "oramane123"){
+
+    document.getElementById("closeBtn").style.display =
+    "inline-block";
+
+    alert("Admin Login Success");
+
+  } else {
+
+    alert("Wrong Password");
+
+  }
+
+};
+
 
 </script>
 
